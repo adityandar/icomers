@@ -2,12 +2,13 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
+	"icomers/database"
 	"icomers/models"
 	"net/http"
 	"time"
 
 	"github.com/gorilla/mux"
+	"gorm.io/gorm"
 )
 
 var products = []models.Product{
@@ -17,66 +18,89 @@ var products = []models.Product{
 
 // func to get all products
 func GetProducts(w http.ResponseWriter, r *http.Request) {
+	var allProducts []models.Product
+	if err := database.DB.Find(&allProducts).Error; err != nil {
+		http.Error(w, "Erorr when fetching all products", http.StatusInternalServerError)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(products)
+	json.NewEncoder(w).Encode(allProducts)
 }
 
 // func to get product by ID
 func GetProduct(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
+	var product models.Product
 
-	for _, item := range products {
-		if fmt.Sprintf("%d", item.ID) == params["id"] {
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(item)
-			return
+	if err := database.DB.First(&product, params["id"]).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			http.Error(w, "Product not found", http.StatusNotFound)
+		} else {
+			http.Error(w, "Error when fetching products", http.StatusInternalServerError)
 		}
+		return
 	}
 
-	http.Error(w, "Product not found", http.StatusNotFound)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(product)
 }
 
 // func to create new product
 func CreateProduct(w http.ResponseWriter, r *http.Request) {
 	var product models.Product
-	_ = json.NewDecoder(r.Body).Decode(&product)
-	product.ID = len(products) + 1
-	product.CreatedAt = time.Now()
-	product.UpdatedAt = time.Now()
-	products = append(products, product)
+	if err := json.NewDecoder(r.Body).Decode(&product); err != nil {
+		http.Error(w, "Invalid input", http.StatusBadRequest)
+		return
+	}
+
+	if err := database.DB.Create(&product).Error; err != nil {
+		http.Error(w, "Error when creating product", http.StatusInternalServerError)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(product)
 }
 
 func UpdateProduct(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
-	var updatedProducts models.Product
-	_ = json.NewDecoder(r.Body).Decode(&updatedProducts)
+	var product models.Product
 
-	for i, item := range products {
-		if fmt.Sprintf("%d", item.ID) == params["id"] {
-			products[i].Name = updatedProducts.Name
-			products[i].Description = updatedProducts.Description
-			products[i].Price = updatedProducts.Price
-			products[i].UpdatedAt = time.Now()
-
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(products[i])
-			return
-
+	if err := database.DB.First(&product, params["id"]).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			http.Error(w, "Product not found", http.StatusNotFound)
+		} else {
+			http.Error(w, "Error when fetching products", http.StatusInternalServerError)
 		}
+		return
 	}
-	http.Error(w, "Product not found", http.StatusNotFound)
+
+	var updatedProduct models.Product
+	if err := json.NewDecoder(r.Body).Decode(&updatedProduct); err != nil {
+		http.Error(w, "Invalid input", http.StatusBadRequest)
+	}
+
+	product.Name = updatedProduct.Name
+	product.Description = updatedProduct.Description
+	product.Price = updatedProduct.Price
+	product.UpdatedAt = updatedProduct.UpdatedAt
+
+	if err := database.DB.Save(&product).Error; err != nil {
+		http.Error(w, "Error while updating product", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(product)
 }
 
 func DeleteProduct(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
-	for i, item := range products {
-		if fmt.Sprintf("%d", item.ID) == params["id"] {
-			products = append(products[:i], products[i+1:]...)
-			w.WriteHeader(http.StatusNoContent)
-			return
-		}
+	if err := database.DB.Delete(&models.Product{}, params["id"]).Error; err != nil {
+		http.Error(w, "Product not found", http.StatusNotFound)
+		return
 	}
-	http.Error(w, "Product not found", http.StatusNotFound)
+
+	w.WriteHeader(http.StatusNoContent)
 }

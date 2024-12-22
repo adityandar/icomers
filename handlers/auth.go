@@ -3,11 +3,14 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"icomers/database"
+	"icomers/dto"
 	"icomers/models"
 	"net/http"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
+	"gorm.io/gorm"
 )
 
 var users = []models.User{
@@ -29,37 +32,47 @@ func createToken(user models.User) (string, error) {
 
 func RegisterUser(w http.ResponseWriter, r *http.Request) {
 	var newUser models.User
-	_ = json.NewDecoder(r.Body).Decode(&newUser)
+	if err := json.NewDecoder(r.Body).Decode(&newUser); err != nil {
+		http.Error(w, "Invalid Input", http.StatusBadRequest)
+		return
+	}
 
 	// hash the password first
-	err := newUser.HashPassword()
-	if err != nil {
+	if err := newUser.HashPassword(); err != nil {
 		http.Error(w, "Error hashing password", http.StatusInternalServerError)
 		return
 	}
 
-	newUser.ID = len(users) + 1
-	newUser.CreatedAt = time.Now()
-	users = append(users, newUser)
+	if err := database.DB.Create(&newUser).Error; err != nil {
+		http.Error(w, "Error creating new user", http.StatusInternalServerError)
+		return
+	}
+
+	response := dto.ConvertToUserResponse(newUser)
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(newUser)
+	// TODO(adityandar): when returning the data, it still send the `password` field
+	json.NewEncoder(w).Encode(response)
 }
 
 func LoginUser(w http.ResponseWriter, r *http.Request) {
 	var loginUser models.User
-	_ = json.NewDecoder(r.Body).Decode(&loginUser)
+	if err := json.NewDecoder(r.Body).Decode(&loginUser); err != nil {
+		http.Error(w, "Invalid input", http.StatusBadRequest)
+	}
 
 	var foundUser models.User
 
-	for _, user := range users {
-		if user.Username == loginUser.Username {
-			foundUser = user
-			break
+	if err := database.DB.Where("username = ? ", loginUser.Username).First(&foundUser).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			http.Error(w, "Username or password is invalid", http.StatusNotFound)
+		} else {
+			http.Error(w, "Failed to fetch user data", http.StatusInternalServerError)
 		}
+		return
 	}
 
-	if foundUser.Username == "" || !foundUser.CheckPassword(loginUser.Password) {
+	if !foundUser.CheckPassword(loginUser.Password) {
 		http.Error(w, "Username or password is invalid", http.StatusUnauthorized)
 		return
 	}
