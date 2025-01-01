@@ -1,0 +1,37 @@
+{
+    "app": {
+        "name": "icomers-clean-architecture"
+    },
+    "web": {
+        "prefork": false,
+        "port": 3000
+    },
+    "log": {
+        "level": 6
+    },
+    "database": {
+        "username": "postgres",
+        "password": "admin",
+        "host": "localhost",
+        "port": 5432,
+        "name": "icomers",
+        "pool": {
+            "idle": 10,
+            "max": 100,
+            "lifetime": 300
+        }
+    },
+    "kafka": {
+        "bootstrap": {
+            "servers": "localhost:9092"
+        },
+        "group": {
+            "id": "golang-clean-architecture"
+        },
+        "auto": {
+            "offset": {
+                "reset": "earliest"
+            }
+        }
+    }
+}

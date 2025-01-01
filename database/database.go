@@ -22,7 +22,6 @@ func Init() {
 	)
 
 	var err error
-	// DB, err = sql.Open("postgres", connStr)
 	DB, err = gorm.Open(postgres.Open(connStr), &gorm.Config{})
 	if err != nil {
 		log.Fatalf("Error when opening database, %v\n", err)

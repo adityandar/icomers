@@ -2,7 +2,6 @@ package models
 
 import (
 	"fmt"
-	"time"
 
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -13,8 +12,8 @@ type User struct {
 	Username  string `gorm:"unique; not null"`
 	Email     string `gorm:"unique: not null"`
 	Password  string `gorm:"not null"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	CreatedAt int64
+	UpdatedAt int64
 	DeletedAt gorm.DeletedAt `gorm:"index"`
 }
 
