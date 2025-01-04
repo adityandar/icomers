@@ -2,7 +2,7 @@ package config
 
 import (
 	"fmt"
-	"icomers/models"
+	"icomers/internal/entity"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -43,7 +43,7 @@ func NewDatabase(config *viper.Viper, log *logrus.Logger) *gorm.DB {
 	if err != nil {
 		log.Fatalf("Error when opening database, %v\n", err)
 	}
-	if err = db.AutoMigrate(&models.User{}, &models.Product{}); err != nil {
+	if err = db.AutoMigrate(&entity.User{}, &entity.Product{}); err != nil {
 		log.Fatalf("Error when running auto migration, %v\n", err)
 	}
 

@@ -7,8 +7,9 @@ import (
 )
 
 type RouteConfig struct {
-	App            *fiber.App
-	UserController *http.UserController
+	App               *fiber.App
+	UserController    *http.UserController
+	ProductController *http.ProductController
 }
 
 func (c *RouteConfig) Setup() {
@@ -17,4 +18,8 @@ func (c *RouteConfig) Setup() {
 
 func (c *RouteConfig) SetupGuestRoute() {
 	c.App.Post("/api/register", c.UserController.Register)
+	c.App.Post("/api/login", c.UserController.Login)
+	// change to protected route
+	c.App.Post("/api/products", c.ProductController.Create)
+	c.App.Get("/api/products", c.ProductController.Get)
 }

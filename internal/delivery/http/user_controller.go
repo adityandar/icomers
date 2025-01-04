@@ -13,7 +13,7 @@ type UserController struct {
 	UserUseCase *usecase.UserUseCase
 }
 
-func NewUserController(userUseCase *usecase.UserUseCase, log *logrus.Logger) *UserController {
+func NewUserController(log *logrus.Logger, userUseCase *usecase.UserUseCase) *UserController {
 	return &UserController{
 		Log:         log,
 		UserUseCase: userUseCase,
@@ -35,5 +35,21 @@ func (c *UserController) Register(ctx *fiber.Ctx) error {
 	}
 
 	return ctx.JSON(model.WebResponse[*model.UserResponse]{Data: response})
+}
 
+func (c *UserController) Login(ctx *fiber.Ctx) error {
+	request := new(model.LoginUserRequest)
+	err := ctx.BodyParser(request)
+	if err != nil {
+		c.Log.Warnf("Failed to parse body request: %+v", err)
+		return fiber.ErrBadRequest
+	}
+
+	response, err := c.UserUseCase.Login(ctx.UserContext(), request)
+	if err != nil {
+		c.Log.Warnf("Failed to login user : %+v", err)
+		return err
+	}
+
+	return ctx.JSON(model.WebResponse[*model.UserResponse]{Data: response})
 }

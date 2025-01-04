@@ -13,6 +13,12 @@ func UserToResponse(user *entity.User) *model.UserResponse {
 	}
 }
 
+func ToTokenResponse(token string) *model.UserResponse {
+	return &model.UserResponse{
+		Token: token,
+	}
+}
+
 func UserToEvent(user *entity.User) *model.UserEvent {
 	return &model.UserEvent{
 		ID:        user.ID,

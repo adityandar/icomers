@@ -78,3 +78,33 @@ func (c *UserUseCase) Create(ctx context.Context, request *model.RegisterUserReq
 	// event := converter.UserToEvent(user)
 	return converter.UserToResponse(user), nil
 }
+
+func (c *UserUseCase) Login(ctx context.Context, request *model.LoginUserRequest) (*model.UserResponse, error) {
+	tx := c.DB.WithContext(ctx).Begin()
+	defer tx.Rollback()
+
+	err := c.Validate.Struct(request)
+	if err != nil {
+		c.Log.Warnf("Invalid request body : %+v", err)
+		return nil, fiber.ErrBadRequest
+	}
+
+	user := new(entity.User)
+	if err := c.UserRepository.FindByEmail(tx, user, request.Email); err != nil {
+		c.Log.Warnf("Email not found : %+v", err)
+		return nil, fiber.ErrUnauthorized
+	}
+	c.Log.Warnf("User %+v", user)
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(request.Password)); err != nil {
+		c.Log.Warnf("Invalid password : %+v", err)
+		return nil, fiber.ErrUnauthorized
+	}
+	token, err := c.UserRepository.CreateToken(user)
+	if err != nil {
+		c.Log.Warnf("Failed to create token : %+v", err)
+		return nil, fiber.ErrInternalServerError
+	}
+
+	return converter.ToTokenResponse(token), nil
+}
