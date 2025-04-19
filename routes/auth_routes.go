@@ -8,6 +8,6 @@ import (
 
 // public routes
 func RegisterAuthRoutes(r *mux.Router) {
-	r.HandleFunc("/register", handlers.RegisterUser).Methods("POST")
-	r.HandleFunc("/login", handlers.LoginUser).Methods("POST")
+	r.HandleFunc("/registerUser", handlers.RegisterUser).Methods("POST")
+	r.HandleFunc("/loginUser", handlers.LoginUser).Methods("POST")
 }
